@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1080 1080">
+  <!-- Generator: Adobe Illustrator 30.4.0, SVG Export Plug-In . SVG Version: 2.1.4 Build 226)  -->
+  <defs>
+    <style>
+      .st0 {
+        stroke-width: 7px;
+      }
+
+      .st0, .st1, .st2, .st3 {
+        fill: none;
+      }
+
+      .st0, .st3 {
+        stroke: #d6d6d6;
+      }
+
+      .st4 {
+        fill: #2f7bf6;
+      }
+
+      .st4, .st5, .st6 {
+        isolation: isolate;
+      }
+
+      .st4, .st6 {
+        font-family: HelveticaRoundedLTStd-Bd, 'Helvetica Rounded LT Std';
+        font-size: 178.48px;
+        letter-spacing: .03em;
+      }
+
+      .st1, .st2, .st7 {
+        stroke: #2f7bf6;
+      }
+
+      .st1, .st7, .st3 {
+        stroke-width: 9px;
+      }
+
+      .st1, .st3 {
+        stroke-linecap: square;
+      }
+
+      .st2 {
+        stroke-linecap: round;
+        stroke-width: 11px;
+      }
+
+      .st8 {
+        stroke: #000;
+        stroke-miterlimit: 10;
+      }
+
+      .st8, .st7 {
+        fill: #1c1f24;
+      }
+
+      .st6 {
+        fill: #d6d6d6;
+      }
+    </style>
+  </defs>
+  <rect class="st8" width="1080" height="1080" rx="159" ry="159"/>
+  <g id="Layer_11" data-name="Layer_1">
+    <g class="st5">
+      <g class="st5">
+        <text class="st4" transform="translate(115.55 951.5)"><tspan x="0" y="0">RE</tspan></text>
+      </g>
+      <g class="st5">
+        <text class="st6" transform="translate(380.92 951.5)"><tspan x="0" y="0">COMP</tspan></text>
+      </g>
+    </g>
+  </g>
+  <g id="Layer_3">
+    <rect class="st0" x="215.48" y="123" width="569.24" height="569.24" rx="10" ry="10"/>
+    <path class="st3" d="M268.95,209.08v-32.61h32.61"/>
+  </g>
+  <g id="Layer_2">
+    <rect class="st7" x="278.4" y="185.92" width="569.24" height="569.24" rx="14" ry="14"/>
+    <line class="st2" x1="488.12" y1="470.54" x2="637.92" y2="470.54"/>
+    <line class="st2" x1="563.02" y1="395.64" x2="563.02" y2="545.44"/>
+    <path class="st1" d="M329.62,267.34v-30.2h30.2"/>
+    <path class="st1" d="M796.42,673.73v30.2h-30.2"/>
+  </g>
+</svg>
