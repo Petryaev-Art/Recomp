@@ -2,6 +2,15 @@
 
 All notable changes to Recomp are documented here.
 
+## [1.2.0]
+
+### Added
+- **Keep content centered** option (on by default) for resolution changes. After
+  resizing, all unparented layers are offset by half the size difference so the
+  composition stays centered instead of sticking to the top-left corner. Handles
+  static values, keyframed positions, and separated X/Y dimensions; layers with a
+  position expression and camera/light layers are left untouched.
+
 ## [1.1.1]
 
 ### Changed

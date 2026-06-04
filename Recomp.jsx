@@ -1,5 +1,5 @@
 /*
- * Recomp v1.1.1 - After Effects script
+ * Recomp v1.2.0 - After Effects script
  * Duplicate compositions with all nested comps and expression links,
  * and/or batch-change resolution and frame rate.
  *
@@ -13,7 +13,7 @@
 (function recomp(thisObj) {
 
     var SCRIPT_NAME = "Recomp";
-    var VERSION = "1.1.1";
+    var VERSION = "1.2.0";
     var MIN_AE_VERSION = 18;
     var MIN_AE_YEAR = "2021";
 
@@ -205,6 +205,65 @@
         return done;
     }
 
+    function offsetScalar(prop, d) {
+        if (!prop || d === 0) return;
+        try {
+            if (prop.expressionEnabled && prop.expression !== "") return;
+        } catch (eExp) {}
+        try {
+            if (prop.numKeys && prop.numKeys > 0) {
+                for (var k = 1; k <= prop.numKeys; k++) {
+                    prop.setValueAtKey(k, prop.keyValue(k) + d);
+                }
+            } else {
+                prop.setValue(prop.value + d);
+            }
+        } catch (eSet) {}
+    }
+
+    function offsetPosition(prop, dx, dy) {
+        if (!prop) return;
+        try {
+            if (prop.expressionEnabled && prop.expression !== "") return;
+        } catch (eExp) {}
+        try {
+            if (prop.dimensionsSeparated === true) {
+                offsetScalar(prop.getSeparationFollower(0), dx);
+                offsetScalar(prop.getSeparationFollower(1), dy);
+                return;
+            }
+        } catch (eSep) {}
+        try {
+            if (prop.numKeys && prop.numKeys > 0) {
+                for (var k = 1; k <= prop.numKeys; k++) {
+                    var v = prop.keyValue(k);
+                    v[0] = v[0] + dx;
+                    v[1] = v[1] + dy;
+                    prop.setValueAtKey(k, v);
+                }
+            } else {
+                var val = prop.value;
+                val[0] = val[0] + dx;
+                val[1] = val[1] + dy;
+                prop.setValue(val);
+            }
+        } catch (eSet) {}
+    }
+
+    function recenterContent(comp, dx, dy) {
+        if (dx === 0 && dy === 0) return;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var L = comp.layer(i);
+            if (!(L instanceof AVLayer)) continue;
+            var hasParent = false;
+            try { hasParent = (L.parent != null); } catch (eP) {}
+            if (hasParent) continue;
+            var pos = null;
+            try { pos = L.transform.position; } catch (ePos) { continue; }
+            offsetPosition(pos, dx, dy);
+        }
+    }
+
     function collectTree(comp, list, seen) {
         var key = "_" + comp.id;
         if (seen[key]) return;
@@ -245,6 +304,7 @@
         var doRes = ui.res.resChk.value;
         var doFps = ui.res.fpsChk.value;
         var fitAdj = ui.res.fitAdjChk.value && doRes;
+        var doCenter = ui.res.centerChk.value && doRes;
 
         if (!doDup && !doRes && !doFps) {
             alert("Nothing to do. Enable duplication, resolution or frame rate.", SCRIPT_NAME);
@@ -307,11 +367,13 @@
             for (var t = 0; t < targets.length; t++) {
                 var tc = targets[t];
                 if (doRes) {
+                    var oldW = tc.width, oldH = tc.height;
                     try {
                         tc.width = newW;
                         tc.height = newH;
                         resizedCount++;
                     } catch (eRes) {}
+                    if (doCenter) recenterContent(tc, (newW - oldW) / 2, (newH - oldH) / 2);
                     if (fitAdj) adjCount += fitAdjustmentLayers(tc, newW, newH);
                 }
                 if (doFps) {
@@ -338,6 +400,7 @@
             if (doRes) {
                 msg += "\nResized to " + newW + " x " + newH + " px: " + resizedCount;
                 if (fitAdj) msg += "\nAdjustment layers refit: " + adjCount;
+                if (doCenter) msg += "\nContent kept centered.";
             }
             if (doFps) {
                 msg += "\nFrame rate set to " + newFps + ": " + fpsCount;
@@ -418,6 +481,9 @@
         var fitAdjChk = res.add("checkbox", undefined, "Fit adjustment layers to new size");
         fitAdjChk.value = true;
 
+        var centerChk = res.add("checkbox", undefined, "Keep content centered");
+        centerChk.value = true;
+
         var fpsChk = res.add("checkbox", undefined, "Change frame rate");
         fpsChk.value = false;
 
@@ -430,6 +496,7 @@
         res.wTxt = wTxt;
         res.hTxt = hTxt;
         res.fitAdjChk = fitAdjChk;
+        res.centerChk = centerChk;
         res.fpsChk = fpsChk;
         res.fpsTxt = fpsTxt;
 
@@ -449,6 +516,7 @@
             wTxt.enabled = on;
             hTxt.enabled = on;
             fitAdjChk.enabled = on;
+            centerChk.enabled = on;
         }
         function refreshFps() {
             fpsTxt.enabled = fpsChk.value;

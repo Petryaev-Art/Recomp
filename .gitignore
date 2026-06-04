@@ -2,5 +2,7 @@
 Thumbs.db
 *.log
 .claude/
-CLAUDE.md
-.claude/
+
+# Build artifacts / Yandex Disk sync leftovers
+*.zip
+/Recomp/
