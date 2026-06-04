@@ -2,6 +2,24 @@
 
 All notable changes to Recomp are documented here.
 
+## [1.3.0]
+
+### Added
+- **Fit solids to new size** option (off by default) for resolution changes.
+  Rebuilds plain (non-adjustment) solid layers at the new comp size with scale
+  100% and centered — the same idea as the adjustment-layer refit, but for
+  regular solids. Each solid keeps its original color, and identical colors share
+  one new solid to avoid clutter. Null layers are left untouched.
+
+### Fixed
+- **Keep content centered** now also moves text and shape layers. They were being
+  skipped because `TextLayer` / `ShapeLayer` do not satisfy `instanceof AVLayer`
+  in some After Effects builds; recentering now processes every layer except
+  cameras and lights.
+- Resizing a composition that is used as a precomp now also offsets the precomp
+  layer's anchor point in parent comps, so nested content stays centered instead
+  of drifting.
+
 ## [1.2.0]
 
 ### Added

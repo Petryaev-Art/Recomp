@@ -2,6 +2,7 @@
 Thumbs.db
 *.log
 .claude/
+CLAUDE.md
 
 # Build artifacts / Yandex Disk sync leftovers
 *.zip

@@ -25,6 +25,7 @@ Think of it as a lightweight, focused take on the classic "duplicate the entire 
   - **Full rename** — give the top comp a brand-new name; nested comps become `Name 1`, `Name 2`, …
 - **Batch resolution change** — set a new width/height in pixels for every comp in the tree.
 - **Adjustment-layer refit** — when resizing, solid-based adjustment layers get a fresh comp-sized source (scale 100%, centered) — exactly like creating a new adjustment layer in the resized comp, instead of stretching the old one.
+- **Solid refit** — optionally do the same for plain solid layers: rebuild them at the new comp size (scale 100%, centered) while keeping their color. Off by default; null layers are left alone.
 - **Keep content centered** — when resizing, the composition is kept centered (like the *Anchor: center* option in Composition Settings) instead of sticking to the top-left corner. Works with static and animated positions.
 - **Batch frame-rate change** — set a new FPS (supports fractional rates like 23.976 / 29.97).
 - **Mix and match** — every action is a checkbox. Duplicate only, resize only, change FPS only, or any combination. With duplication off, changes are applied in-place to the selected comps and their nested comps.
@@ -82,7 +83,7 @@ It will open as a floating window for that session.
 2. Open **Window → Recomp.jsx**.
 3. Tick what you want:
    - **Duplicate compositions** — on for copies, off to edit the selected comps in place.
-   - **Change resolution** — enter width/height; optionally keep **Fit adjustment layers** and **Keep content centered** on.
+   - **Change resolution** — enter width/height; optionally keep **Fit adjustment layers** and **Keep content centered** on, and enable **Fit solids** if you want solid layers rebuilt at the new size.
    - **Change frame rate** — enter the new FPS.
 4. Click **Apply**.
 

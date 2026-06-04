@@ -1,5 +1,5 @@
 /*
- * Recomp v1.2.0 - After Effects script
+ * Recomp v1.3.0 - After Effects script
  * Duplicate compositions with all nested comps and expression links,
  * and/or batch-change resolution and frame rate.
  *
@@ -13,7 +13,7 @@
 (function recomp(thisObj) {
 
     var SCRIPT_NAME = "Recomp";
-    var VERSION = "1.2.0";
+    var VERSION = "1.3.0";
     var MIN_AE_VERSION = 18;
     var MIN_AE_YEAR = "2021";
 
@@ -168,14 +168,26 @@
         } catch (e) {}
     }
 
+    function isSolidLayer(L) {
+        try { return (L.source && L.source.mainSource instanceof SolidSource); }
+        catch (e) { return false; }
+    }
+
+    function applyFitTransform(L, cx, cy) {
+        var is3D = false;
+        try { is3D = L.threeDLayer; } catch (e3) {}
+        setStatic(L.transform.anchorPoint, is3D ? [cx, cy, 0] : [cx, cy]);
+        setStatic(L.transform.position, is3D ? [cx, cy, 0] : [cx, cy]);
+        setStatic(L.transform.scale, is3D ? [100, 100, 100] : [100, 100]);
+    }
+
     function fitAdjustmentLayers(comp, w, h) {
         var targets = [];
         for (var i = 1; i <= comp.numLayers; i++) {
             var L = comp.layer(i);
-            if (L instanceof AVLayer && L.adjustmentLayer === true &&
-                L.source && L.source.mainSource instanceof SolidSource) {
-                targets.push(L);
-            }
+            var isAdj = false;
+            try { isAdj = (L.adjustmentLayer === true); } catch (eA) {}
+            if (isAdj && isSolidLayer(L)) targets.push(L);
         }
         if (targets.length === 0) return 0;
 
@@ -195,11 +207,45 @@
             var A = targets[t];
             try {
                 A.replaceSource(solidSrc, false);
-                var is3D = A.threeDLayer;
-                setStatic(A.transform.anchorPoint, is3D ? [cx, cy, 0] : [cx, cy]);
-                setStatic(A.transform.position, is3D ? [cx, cy, 0] : [cx, cy]);
-                setStatic(A.transform.scale, is3D ? [100, 100, 100] : [100, 100]);
+                applyFitTransform(A, cx, cy);
                 done++;
+            } catch (e1) {}
+        }
+        return done;
+    }
+
+    function fitSolids(comp, w, h) {
+        var targets = [];
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var L = comp.layer(i);
+            var isAdj = false, isNull = false;
+            try { isAdj = (L.adjustmentLayer === true); } catch (eA) {}
+            try { isNull = (L.nullLayer === true); } catch (eN) {}
+            if (!isAdj && !isNull && isSolidLayer(L)) targets.push(L);
+        }
+        if (targets.length === 0) return 0;
+
+        var cx = w / 2, cy = h / 2;
+        var cache = {};
+        var done = 0;
+        for (var t = 0; t < targets.length; t++) {
+            var L2 = targets[t];
+            try {
+                var col = [0, 0, 0];
+                try { col = L2.source.mainSource.color; } catch (eC) {}
+                var key = Math.round(col[0] * 255) + "_" + Math.round(col[1] * 255) + "_" + Math.round(col[2] * 255);
+                var src = cache[key];
+                if (!src) {
+                    var tmp = comp.layers.addSolid(col, "Solid " + w + "x" + h, w, h, comp.pixelAspect);
+                    src = tmp.source;
+                    tmp.remove();
+                    cache[key] = src;
+                }
+                if (src) {
+                    L2.replaceSource(src, false);
+                    applyFitTransform(L2, cx, cy);
+                    done++;
+                }
             } catch (e1) {}
         }
         return done;
@@ -254,13 +300,31 @@
         if (dx === 0 && dy === 0) return;
         for (var i = 1; i <= comp.numLayers; i++) {
             var L = comp.layer(i);
-            if (!(L instanceof AVLayer)) continue;
+            var skip = false;
+            try { if (L instanceof CameraLayer || L instanceof LightLayer) skip = true; } catch (eT) {}
+            if (skip) continue;
             var hasParent = false;
             try { hasParent = (L.parent != null); } catch (eP) {}
             if (hasParent) continue;
             var pos = null;
             try { pos = L.transform.position; } catch (ePos) { continue; }
+            if (!pos) continue;
             offsetPosition(pos, dx, dy);
+        }
+    }
+
+    function fixNestedCompAnchors(targets, deltas) {
+        for (var t = 0; t < targets.length; t++) {
+            var comp = targets[t];
+            for (var i = 1; i <= comp.numLayers; i++) {
+                var L = comp.layer(i);
+                if (!(L instanceof AVLayer)) continue;
+                if (!L.source || !(L.source instanceof CompItem)) continue;
+                var d = deltas["_" + L.source.id];
+                if (!d) continue;
+                if (d[0] === 0 && d[1] === 0) continue;
+                try { offsetPosition(L.transform.anchorPoint, d[0], d[1]); } catch (eA) {}
+            }
         }
     }
 
@@ -304,6 +368,7 @@
         var doRes = ui.res.resChk.value;
         var doFps = ui.res.fpsChk.value;
         var fitAdj = ui.res.fitAdjChk.value && doRes;
+        var fitSol = ui.res.fitSolidChk.value && doRes;
         var doCenter = ui.res.centerChk.value && doRes;
 
         if (!doDup && !doRes && !doFps) {
@@ -363,7 +428,8 @@
                 }
             }
 
-            var resizedCount = 0, adjCount = 0, fpsCount = 0;
+            var resizedCount = 0, adjCount = 0, solidCount = 0, fpsCount = 0;
+            var compDeltas = {};
             for (var t = 0; t < targets.length; t++) {
                 var tc = targets[t];
                 if (doRes) {
@@ -373,8 +439,13 @@
                         tc.height = newH;
                         resizedCount++;
                     } catch (eRes) {}
-                    if (doCenter) recenterContent(tc, (newW - oldW) / 2, (newH - oldH) / 2);
+                    var dxC = (newW - oldW) / 2, dyC = (newH - oldH) / 2;
+                    if (doCenter) {
+                        recenterContent(tc, dxC, dyC);
+                        compDeltas["_" + tc.id] = [dxC, dyC];
+                    }
                     if (fitAdj) adjCount += fitAdjustmentLayers(tc, newW, newH);
+                    if (fitSol) solidCount += fitSolids(tc, newW, newH);
                 }
                 if (doFps) {
                     try {
@@ -383,6 +454,8 @@
                     } catch (eFps) {}
                 }
             }
+
+            if (doRes && doCenter) fixNestedCompAnchors(targets, compDeltas);
 
             if (doDup) {
                 try {
@@ -400,6 +473,7 @@
             if (doRes) {
                 msg += "\nResized to " + newW + " x " + newH + " px: " + resizedCount;
                 if (fitAdj) msg += "\nAdjustment layers refit: " + adjCount;
+                if (fitSol) msg += "\nSolids refit: " + solidCount;
                 if (doCenter) msg += "\nContent kept centered.";
             }
             if (doFps) {
@@ -481,6 +555,9 @@
         var fitAdjChk = res.add("checkbox", undefined, "Fit adjustment layers to new size");
         fitAdjChk.value = true;
 
+        var fitSolidChk = res.add("checkbox", undefined, "Fit solids to new size");
+        fitSolidChk.value = false;
+
         var centerChk = res.add("checkbox", undefined, "Keep content centered");
         centerChk.value = true;
 
@@ -496,6 +573,7 @@
         res.wTxt = wTxt;
         res.hTxt = hTxt;
         res.fitAdjChk = fitAdjChk;
+        res.fitSolidChk = fitSolidChk;
         res.centerChk = centerChk;
         res.fpsChk = fpsChk;
         res.fpsTxt = fpsTxt;
@@ -516,6 +594,7 @@
             wTxt.enabled = on;
             hTxt.enabled = on;
             fitAdjChk.enabled = on;
+            fitSolidChk.enabled = on;
             centerChk.enabled = on;
         }
         function refreshFps() {
